@@ -1,5 +1,0 @@
-bodyheight:168
-hip:96
-waist:82
-chest:88
-

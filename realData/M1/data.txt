@@ -1,4 +1,0 @@
-bodyheight:180
-hip:99
-waist:83
-chest:94
