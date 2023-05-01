@@ -3,3 +3,4 @@
 train/model/*
 !train/model/some_checkpoint.ckpt
 
+test_results/
