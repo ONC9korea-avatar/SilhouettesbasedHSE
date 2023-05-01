@@ -44,7 +44,7 @@ class RegressionPCA(nn.Module):
 
         hidden1 = 2*512 
         hidden2 = 512
-        num_keypoints = 12 # (num of points: num_keypoints) (648, 8) Namely, (divide 81)
+        num_keypoints = 8 # (num of points: num_keypoints) (648, 8) Namely, (divide 81)
         c1, c2, c3, c4, c5 = (64, 128, 192, 192, 144)
         #c1, c2, c3, c4, c5 = (64, 96, 128, 160, 128)
 
