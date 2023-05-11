@@ -15,8 +15,6 @@ from torch.autograd import Variable
 
 from regressCNN import RegressionPCA
 
-from data_processing import *
-
 # %% [markdown]
 # ### Device Check
 
