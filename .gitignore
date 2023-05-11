@@ -1,7 +1,2 @@
 *__pycache__
-
-train/model/*
-!train/model/some_checkpoint.ckpt
-real_data/*
-
-test_results/
+checkpoints/
