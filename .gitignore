@@ -1,2 +1,5 @@
 *__pycache__
+dataset_HSE
 checkpoints/
+test_results/
+demo_*
