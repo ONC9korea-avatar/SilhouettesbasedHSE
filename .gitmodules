@@ -1,3 +1,6 @@
 [submodule "obj_utils"]
 	path = obj_utils
 	url = git@github.com:ONC9korea-avatar/obj_utils.git
+[submodule "SMPL"]
+	path = SMPL
+	url = https://github.com/ONC9korea-avatar/SMPL.git
