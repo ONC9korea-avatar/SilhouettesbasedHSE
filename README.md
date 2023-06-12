@@ -2,7 +2,7 @@
 
 ## Install Environment
 ```
-bash install.sh
+conda env create --file environment.yaml
 ```
 
 ## Prerequisites
