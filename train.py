@@ -22,7 +22,7 @@ print('using device', device)
 
 
 
-batch_size = 128
+batch_size = 512
 learning_rate = 1e-5
 training_epoch = 1000
 
