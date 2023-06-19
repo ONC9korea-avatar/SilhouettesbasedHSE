@@ -26,7 +26,7 @@ batch_size = 512
 learning_rate = 1e-5
 training_epoch = 1000
 
-train_dataset = HSEDataset('./dataset_HSE/vertex_6890/sample_648/train/')
+train_dataset = HSEDataset('/home/dgist/avatar-root/dataset-generation/dataset_HSE/SMPL_augmentated_pose_variation/sample_points/train')
 
 train_data_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 print('train dataloader len:', len(train_data_loader))
