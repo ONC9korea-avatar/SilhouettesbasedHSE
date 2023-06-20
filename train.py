@@ -26,7 +26,7 @@ def train(model, train_dataloader, lr, epochs, checkpoint_path,
     
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999))
-    # TODO: Scheduler 추가 - cos, step_lr
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=epochs//3, gamma=0.5)
     
     train_loss = []
     validation_loss = []
