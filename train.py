@@ -1,7 +1,8 @@
 # %%
-import os
-import time
+import os, sys
+from time import time, ctime
 from tqdm import tqdm
+import yaml
 
 import torch
 import torch.nn as nn
@@ -14,72 +15,141 @@ from model.regressCNN import RegressionPCA
 from model.dataset import HSEDataset
 from torch.utils.data import DataLoader
 
-cuda_available = torch.cuda.is_available()
-device = torch.device('cuda:0' if cuda_available else 'cpu')
+TIMESTAMP = '_'.join(ctime(time() + 9*3600)[4:].split())
+CONFIG_TEXT = None
 
-print('cuda available:', cuda_available)
-print('using device', device)
+def train(model, train_dataloader, lr, epochs, checkpoint_path, 
+          validation_dataloader=None,
+          device=torch.device('cuda')):
+    path = os.path.join(checkpoint_path, TIMESTAMP)
+    os.mkdir(path)
+    
+    criterion = nn.MSELoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999))
+    # TODO: Scheduler 추가 - cos, step_lr
+    
+    train_loss = []
+    validation_loss = []
+    pbar = tqdm(range(1, epochs+1), desc='epoch', leave=False)
+    for epoch in pbar:
+        loss_n = 0
+        
+        for data in train_dataloader:
+            f, l, s = data
+            f = f.to(device, dtype=torch.float)
+            l = l.to(device, dtype=torch.float)
+            s = s.to(device, dtype=torch.float)
+            
+            # feed data and forward pass
+            outputs = model(f, l)
+            #********************************************************************************************
+            
+            loss = criterion(outputs, s.float())
+            loss_n += loss.item()
+            #********************************************************************************************
+            # backward and optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        
+        loss_n /= len(train_dataloader)
 
+        train_loss.append(loss_n)
+        pbar.set_description(f'epoch:{epoch} | TrainLoss:{loss_n:.6f}')
+        
+        if epoch%100 == 0:
+            torch.save(model.state_dict(), os.path.join(path, f'epochs_{epoch}.ckpt'))
 
+            if validation_dataloader is not None:
+                loss_v = validate(model, validation_dataloader, device)
+                validation_loss.append(loss_v)
+    
+    return path, train_loss, validation_loss
 
-batch_size = 512
-learning_rate = 1e-5
-training_epoch = 1000
-
-train_dataset = HSEDataset('/home/dgist/avatar-root/dataset-generation/dataset_HSE/SMPL_augmentated_pose_variation/sample_points/train')
-
-train_data_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-print('train dataloader len:', len(train_data_loader))
-
-model = RegressionPCA(10).to(device)
-criterion = nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, betas=(0.9, 0.999))
-
-gender='male'
-loss_train_epoch1 = []
-loss_train = []
-
-checkpoint_path = './checkpoints/checkpoint_{}/'.format(time.ctime().replace(' ', '_'))
-os.mkdir(checkpoint_path)
-
-pbar = tqdm(range(1, training_epoch+1), desc='epoch', leave=False)
-
-for epoch in pbar:
+def validate(model, validation_dataloader, device):
+    criterion = nn.MSELoss()
     loss_n = 0
     
-    for i, data in enumerate(train_data_loader):
-        _, f, l, s = data
-        f = f.to(device, dtype = torch.float)
-        l = l.to(device, dtype = torch.float)
-        s = s.to(device, dtype = torch.float)
-        
-        # feed data and forward pass
-        outputs = model(f, l)
-        #********************************************************************************************
-        
-        loss = criterion(outputs, s.float())
-        loss_n += loss.item()
-        #********************************************************************************************
-        # backward and optimize
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-
-        if epoch == 1:
-            loss_train_epoch1.append(loss.item())
+    with torch.no_grad():    
+        for data in validation_dataloader:
+            f, l, s = data
+            f = f.to(device, dtype=torch.float)
+            l = l.to(device, dtype=torch.float)
+            s = s.to(device, dtype=torch.float)
+            
+            outputs = model(f, l)
+            
+            loss = criterion(outputs, s.float())
+            loss_n += loss.item()
     
-    loss_n /= len(train_data_loader)
+    return loss_n / len(validation_dataloader)
 
-    pbar.set_description(f'epoch:{epoch} | TrainLoss:{loss_n:.6f}')
-    loss_train.append(loss_n)
+def save_result(path, train_loss, validation_loss):
+    global CONFIG_TEXT
+
+    with open(os.path.join(path, 'config.yaml'), 'w') as f:
+        f.write(CONFIG_TEXT)
+
+    np.save(os.path.join(path, 'trainig_loss.npy'), train_loss)
+    np.save(os.path.join(path, 'validation_loss.npy'), validation_loss)
+
+    plt.figure()
+    plt.title('Training Loss')
+    plt.xlabel('epochs')
+    plt.ylabel('loss')
+
+    plt.plot(range(1, len(train_loss)+1), train_loss)
+    plt.savefig(os.path.join(path, 'trainig_loss.png'))
+
+def main():
+    # ---------- Device Check ---------- #
+    cuda_available = torch.cuda.is_available()
+    device = torch.device('cuda:0' if cuda_available else 'cpu')
+
+    print('cuda available:', cuda_available)
+    print('using device', device)
+    # ---------- Device Check ---------- #
+
+
+
+    # ---------- Reading Config ---------- #
+    config_file = sys.argv[1]
+    with open(config_file) as f:
+        CONFIG_TEXT = f.read()
     
-    if epoch%50 == 0:
-        torch.save(model.state_dict(), os.path.join(checkpoint_path, f'{gender}_{epoch}.ckpt'))
+    conf = yaml.safe_load(CONFIG_TEXT)
 
-plt.figure()
-plt.title('Training Loss')
-plt.xlabel('epochs')
-plt.ylabel('loss')
+    dataset_path = conf['paths']['dataset_path']
+    checkpoint_path = conf['paths']['checkpoint_path']
 
-plt.plot(range(1, training_epoch+1), loss_train)
-plt.savefig(os.path.join(checkpoint_path, 'trainig_loss.png'))
+    train_settings = conf['train_settings']
+    batch_size = train_settings['batch_size']
+    lr = train_settings['lr']
+    epochs = train_settings['epochs']
+    # ---------- Reading Config ---------- #
+
+
+
+    # ---------- Prepare Dataset ----------#
+    indices = np.load(os.path.join(dataset_path, 'train_test_index.npz'))
+
+    train_index, test_index = indices['train_idx'], indices['test_idx']
+    train_dataset = HSEDataset(os.path.join(dataset_path, 'dataset.npz'), train_index)
+    test_dataset = HSEDataset(os.path.join(dataset_path, 'dataset.npz'), test_index)
+
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    print('train dataloader len:', len(train_dataloader))
+    # ---------- Prepare Dataset ----------#
+
+
+
+    # ---------- Prepare Model ----------#
+    model = RegressionPCA(10).to(device)
+    # ---------- Prepare Model ----------#
+
+    path, train_loss, validation_loss =\
+        train(model, train_dataloader, lr, epochs, checkpoint_path, device)
+    save_result(path, train_loss, validation_loss)
+
+if __name__ == '__main__':
+    main()
