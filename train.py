@@ -52,6 +52,7 @@ def train(model, train_dataloader, lr, epochs, checkpoint_path,
             loss.backward()
             optimizer.step()
         
+        scheduler.step()
         loss_n /= len(train_dataloader)
 
         train_loss.append(loss_n)
