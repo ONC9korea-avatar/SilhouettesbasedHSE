@@ -16,42 +16,30 @@ def _transform(x):
     return repeat_data(x.transpose())
 
 class HSEDataset(Dataset):
-    def __init__(self, data_path, transform=_transform, predict_only=False):
-        self.frontal = []
-        self.lateral = []
-        self.shape = []
-        self.names = []
+    def __init__(self, data_path, index=None, transform=_transform):
+        dataset = np.load(data_path)
+
+        if index is None:
+            self.frontal = dataset['frontal']
+            self.lateral = dataset['lateral']
+            self.beta = dataset['beta']
+        else:
+            self.frontal = dataset['frontal'][index]
+            self.lateral = dataset['lateral'][index]
+            self.beta = dataset['beta'][index]
 
         self.transform = transform
-        self.predict_only = predict_only
-
-        for dir in tqdm(os.listdir(data_path), desc='loading data'):
-            path = os.path.join(data_path, dir)
-            f = np.load(os.path.join(path, 'frontal.npy'))
-            l = np.load(os.path.join(path, 'lateral.npy'))
-
-            if self.predict_only:
-                s = []
-            else:
-                s = np.load(os.path.join(path, 'shape.npy'))
-            
-
-            self.frontal.append(f)
-            self.lateral.append(l)
-            self.shape.append(s)
-            self.names.append(dir)
 
     def __getitem__(self, i):
         f = self.frontal[i]
         l = self.lateral[i]
-        s = self.shape[i]
-        n = self.names[i]
+        s = self.beta[i]
 
         if self.transform:
             f = self.transform(f)
             l = self.transform(l)
         
-        return n, f, l, s
+        return f, l, s
 
     def __len__(self):
         return len(self.frontal)
