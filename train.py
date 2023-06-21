@@ -22,7 +22,7 @@ def train(model, train_dataloader, lr, epochs, checkpoint_path,
           validation_dataloader=None,
           device=torch.device('cuda')):
     path = os.path.join(checkpoint_path, TIMESTAMP)
-    os.mkdir(path)
+    os.makedirs(path)
     
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999))
@@ -149,7 +149,7 @@ def main():
     # ---------- Prepare Model ----------#
 
     path, train_loss, validation_loss =\
-        train(model, train_dataloader, lr, epochs, checkpoint_path, device)
+        train(model, train_dataloader, lr, epochs, checkpoint_path, validation_dataloader=train_dataloader, device=device)
     save_result(path, train_loss, validation_loss)
 
 if __name__ == '__main__':

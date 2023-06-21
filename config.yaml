@@ -1,6 +1,6 @@
 paths:
   dataset_path: /home/dgist/avatar-root/dataset-generation/dataset_HSE/SMPL_augmentated_pose_variation/sample_points
-  checkpoint_path: ./checkpoint/
+  checkpoint_path: ./checkpoints/
 
 train_settings:
   batch_size: 512
