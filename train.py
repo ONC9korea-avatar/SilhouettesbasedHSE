@@ -139,6 +139,7 @@ def main():
     test_dataset = HSEDataset(os.path.join(dataset_path, 'dataset.npz'), test_index)
 
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
     print('train dataloader len:', len(train_dataloader))
     # ---------- Prepare Dataset ----------#
 
@@ -149,7 +150,7 @@ def main():
     # ---------- Prepare Model ----------#
 
     path, train_loss, validation_loss =\
-        train(model, train_dataloader, lr, epochs, checkpoint_path, validation_dataloader=train_dataloader, device=device)
+        train(model, train_dataloader, lr, epochs, checkpoint_path, validation_dataloader=test_dataloader, device=device)
     save_result(path, train_loss, validation_loss)
 
 if __name__ == '__main__':
