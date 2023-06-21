@@ -1,9 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
 
-import os
-from tqdm import tqdm
-
 def repeat_data(x):
     row, col = x.shape
     data = np.zeros([row, col+2])
