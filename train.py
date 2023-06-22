@@ -18,15 +18,17 @@ from torch.utils.data import DataLoader
 TIMESTAMP = '_'.join(ctime(time() + 9*3600)[4:].split())
 CONFIG_TEXT = None
 
-def train(model, train_dataloader, lr, epochs, checkpoint_path, 
+def train(model, train_dataloader, epochs, 
+          optimizer, 
+          scheduler,
+          checkpoint_path, 
           validation_dataloader=None,
           device=torch.device('cuda')):
+    
     path = os.path.join(checkpoint_path, TIMESTAMP)
     os.makedirs(path)
     
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.999))
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=epochs//3, gamma=0.5)
     
     train_loss = []
     validation_loss = []
@@ -103,6 +105,7 @@ def save_result(path, train_loss, validation_loss):
     plt.savefig(os.path.join(path, 'trainig_loss.png'))
 
 def main():
+    global CONFIG_TEXT
     # ---------- Device Check ---------- #
     cuda_available = torch.cuda.is_available()
     device = torch.device('cuda:0' if cuda_available else 'cpu')
@@ -125,8 +128,12 @@ def main():
 
     train_settings = conf['train_settings']
     batch_size = train_settings['batch_size']
-    lr = train_settings['lr']
     epochs = train_settings['epochs']
+
+    lr = train_settings['optimizer']['lr']
+    betas = train_settings['optimizer']['betas']
+
+    gamma = train_settings['scheduler']['gamma']
     # ---------- Reading Config ---------- #
 
 
@@ -139,18 +146,27 @@ def main():
     test_dataset = HSEDataset(os.path.join(dataset_path, 'dataset.npz'), test_index)
 
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=False)
+    test_dataloader = DataLoader(dataset=test_dataset, batch_size=batch_size, shuffle=False)
     print('train dataloader len:', len(train_dataloader))
     # ---------- Prepare Dataset ----------#
 
 
 
-    # ---------- Prepare Model ----------#
+    # ---------- Prepare Model and Optimizer ----------#
     model = RegressionPCA(10).to(device)
-    # ---------- Prepare Model ----------#
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=betas)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=epochs//3, gamma=gamma)
+    # ---------- Prepare Model and Optimizer ----------#
+
+
 
     path, train_loss, validation_loss =\
-        train(model, train_dataloader, lr, epochs, checkpoint_path, validation_dataloader=test_dataloader, device=device)
+        train(model, train_dataloader, epochs, 
+              optimizer, 
+              scheduler,
+              checkpoint_path, 
+              validation_dataloader=test_dataloader,
+              device=device)
     save_result(path, train_loss, validation_loss)
 
 if __name__ == '__main__':
