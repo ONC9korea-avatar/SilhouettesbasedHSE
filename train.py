@@ -93,7 +93,7 @@ def save_result(path, train_loss, validation_loss):
     with open(os.path.join(path, 'config.yaml'), 'w') as f:
         f.write(CONFIG_TEXT)
 
-    np.save(os.path.join(path, 'trainig_loss.npy'), train_loss)
+    np.save(os.path.join(path, 'training_loss.npy'), train_loss)
     np.save(os.path.join(path, 'validation_loss.npy'), validation_loss)
 
     plt.figure()
@@ -102,7 +102,7 @@ def save_result(path, train_loss, validation_loss):
     plt.ylabel('loss')
 
     plt.plot(range(1, len(train_loss)+1), train_loss)
-    plt.savefig(os.path.join(path, 'trainig_loss.png'))
+    plt.savefig(os.path.join(path, 'training_loss.png'))
 
 def main():
     global CONFIG_TEXT
