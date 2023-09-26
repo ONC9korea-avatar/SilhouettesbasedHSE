@@ -3,3 +3,5 @@ dataset_HSE
 checkpoints/
 test_results/
 demo_*
+
+output/
