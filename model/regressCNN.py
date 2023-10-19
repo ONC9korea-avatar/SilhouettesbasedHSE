@@ -96,6 +96,6 @@ class RegressionPCA(nn.Module):
         return out   
 
 if __name__ == '__main__':
-    len_out = 9
+    len_out = 6890
     model = RegressionPCA(len_out)
     print(model)
