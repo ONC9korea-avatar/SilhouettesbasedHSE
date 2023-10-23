@@ -17,13 +17,13 @@ class HSEDataset(Dataset):
         dataset = np.load(data_path)
 
         if index is None:
-            self.frontal = dataset['frontal']
-            self.lateral = dataset['lateral']
-            self.beta = dataset['beta']
+            self.frontal = dataset['frontal_sample_points']
+            self.lateral = dataset['lateral_sample_points']
+            self.beta = dataset['betas']
         else:
-            self.frontal = dataset['frontal'][index]
-            self.lateral = dataset['lateral'][index]
-            self.beta = dataset['beta'][index]
+            self.frontal = dataset['frontal_sample_points'][index]
+            self.lateral = dataset['lateral_sample_points'][index]
+            self.beta = dataset['betas'][index]
 
         self.transform = transform
 
