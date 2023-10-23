@@ -1,1 +1,1 @@
-conda run -n HSE python -m dataset-generation.generation config/dataset/example.yaml
+conda run -n HSE python -m dataset-generation.generation config/dataset-generation/example.yaml
