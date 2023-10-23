@@ -27,4 +27,5 @@ For more information, please refer to the [Dataset-generation README.md](dataset
 1. Run `./test.ipynb`
 
 ### TODO
-- Save Dataset Result Configuration 
+- Save Dataset Result Configuration
+- config save_path of `dataset.npz`
