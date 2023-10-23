@@ -3,13 +3,13 @@
 This Python script is designed to generate a dataset for Human Shape Estimation (HSE). It uses the SMPL model for reconstructing human shapes and produces silhouettes, sample points, and other data for the dataset.
 
 ## Requirements
-
-- Python 3.7 or higher
-- OpenCV (cv2)
-- NumPy
-- PyTorch
-- tqdm
-- SMPL model (located in `/workspace/SilhouettesbasedHSE/SMPL/model.pkl`)
+- HSE environment
+  - Python 3.7 or higher
+  - OpenCV (cv2)
+  - NumPy
+  - PyTorch
+  - tqdm
+- SMPL model. refer to [SMPL_README](../SMPL/README.md)
 - Config YAML file for defining dataset parameters
 
 ## Configuration
