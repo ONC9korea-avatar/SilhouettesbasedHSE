@@ -18,16 +18,49 @@ from model.resnetCNN_wide import ResnetPCA_wide
 
 from model.dataset import HSEDataset
 from torch.utils.data import DataLoader
+from SMPL.smpl_torch_batch import SMPLModel
+
 
 TIMESTAMP = '_'.join(ctime(time() + 9*3600)[4:].split())
 CONFIG_TEXT = None
+
+def get_A_pose_parameter(size, pose_variant=False):
+    """
+    Returns 'A-pose' SMPL pose paramters sized size
+
+    Arguments:
+        - size
+        - pose_variant (optional)
+
+    Return:
+        - poses
+    """
+    poses = np.zeros((size, 72))
+    
+    left_arm_noise = np.radians(np.random.uniform(-5, 5, size)) if pose_variant else 0
+    right_arm_noise = np.radians(np.random.uniform(-5, 5, size)) if pose_variant else 0
+
+    poses[:,16 *3 + 2] = - np.pi / 3 + left_arm_noise # Left arm 
+    poses[:,17 *3 + 2] = np.pi / 3 + right_arm_noise # Right arm
+
+    left_leg_noise = np.radians(np.random.uniform(-3, 3, size)) if pose_variant else 0
+    right_leg_noise = np.radians(np.random.uniform(-3, 3, size)) if pose_variant else 0
+
+    poses[:,1 *3 + 2] = +np.pi / 36 + left_leg_noise # Left leg
+    poses[:,2 *3 + 2] = -np.pi / 36 + right_leg_noise # Right leg
+
+    poses[:,10 *3 + 2] = -np.pi / 6 - left_leg_noise # Left foot
+    poses[:,11 *3 + 2] = +np.pi / 6 - right_leg_noise # Right foot
+
+    return poses
 
 def train(model, train_dataloader, epochs, 
           optimizer, 
           scheduler,
           checkpoint_path, 
+          smpl_model,
           validation_dataloader=None,
-          device=torch.device('cuda')) :
+          device=torch.device('cuda')):
     
     path = os.path.join(checkpoint_path, TIMESTAMP, type(model).__name__)
     os.makedirs(path)
@@ -46,13 +79,28 @@ def train(model, train_dataloader, epochs,
             f, l, s = data
             f = f.to(device, dtype=torch.float)
             l = l.to(device, dtype=torch.float)
-            s = s.to(device, dtype=torch.float)
+            s = s.to(device, dtype=torch.float64)            
+
+            #print(type(s))
+            #print(s.shape)
             
             # feed data and forward pass
             outputs = model(f, l)
             #********************************************************************************************
-            
-            loss = criterion(outputs, s.float())
+            #s = s.to(device, dtype=torch.float64)
+            outputs = outputs.to(device, dtype=torch.float64)
+
+            pose = get_A_pose_parameter(s.shape[0])
+            pose_tensor = torch.from_numpy(pose).type(torch.float64).to(device)
+
+            trans = np.zeros((s.shape[0], 3))
+            trans_tensor = torch.from_numpy(trans).type(torch.float64).to(device)       
+
+            v_gt, _ = smpl_model(s, pose_tensor, trans_tensor)
+            v_gt = v_gt.reshape(-1, 20670)
+
+            #****************************************************
+            loss = criterion(outputs.float(), v_gt.float())
             loss_n += loss.item()
             #********************************************************************************************
             # backward and optimize
@@ -70,12 +118,12 @@ def train(model, train_dataloader, epochs,
             torch.save(model.state_dict(), os.path.join(path, f'epochs_{epoch}.ckpt'))
 
             if validation_dataloader is not None:
-                loss_v = validate(model, validation_dataloader, device)
+                loss_v = validate(model, validation_dataloader, device, smpl_model)
                 validation_loss.append(loss_v)
     
     return path, train_loss, validation_loss
 
-def validate(model, validation_dataloader, device):
+def validate(model, validation_dataloader, device, smpl_model):
     criterion = nn.MSELoss()
     loss_n = 0
     
@@ -84,11 +132,25 @@ def validate(model, validation_dataloader, device):
             f, l, s = data
             f = f.to(device, dtype=torch.float)
             l = l.to(device, dtype=torch.float)
-            s = s.to(device, dtype=torch.float)
+            s = s.to(device, dtype=torch.float64)
             
             outputs = model(f, l)
+
+            #***************************************
+            pose = get_A_pose_parameter(s.shape[0])
+            pose_tensor = torch.from_numpy(pose).type(torch.float64).to(device)
+
+            trans = np.zeros((s.shape[0], 3))
+            trans_tensor = torch.from_numpy(trans).type(torch.float64).to(device)       
+
+            v_gt, _ = smpl_model(s, pose_tensor, trans_tensor)
+            v_gt = v_gt.reshape(-1, 20670)
+
+            #****************************************************
+            loss = criterion(outputs.float(), v_gt.float())
+            #***************************************
             
-            loss = criterion(outputs, s.float())
+            #loss = criterion(outputs, s.float())
             loss_n += loss.item()
     
     return loss_n / len(validation_dataloader)
@@ -99,7 +161,7 @@ def save_result(path, train_loss, validation_loss):
     with open(os.path.join(path, 'config.yaml'), 'w') as f:
         f.write(CONFIG_TEXT)
 
-    np.save(os.path.join(path, 'training_loss.npy'), train_loss)
+    np.save(os.path.join(path, 'trainig_loss.npy'), train_loss)
     np.save(os.path.join(path, 'validation_loss.npy'), validation_loss)
 
     plt.figure()
@@ -108,7 +170,7 @@ def save_result(path, train_loss, validation_loss):
     plt.ylabel('loss')
 
     plt.plot(range(1, len(train_loss)+1), train_loss)
-    plt.savefig(os.path.join(path, 'training_loss.png'))
+    plt.savefig(os.path.join(path, 'trainig_loss.png'))
 
 def main():
     global CONFIG_TEXT
@@ -122,8 +184,15 @@ def main():
 
 
 
-    # ---------- Reading Config ---------- #
+    # ---------- Reading Config ---------- #    
+    #only train kjk
     config_file = sys.argv[1]
+    #only train kjk
+
+    #only debugging kjk
+    #config_file = "/home/user/avatar-root/SilhouettesbasedHSE/config.yaml"
+    #only debugging kjk
+
     with open(config_file) as f:
         CONFIG_TEXT = f.read()
     
@@ -167,18 +236,29 @@ def main():
     ModelClass = model_mapping[model_type]
 
     # ---------- Prepare Model and Optimizer ----------#
-    model = ModelClass(10).to(device)
+    model = ModelClass(6890*3).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=betas)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=epochs//3, gamma=gamma)
-    # ---------- Prepare Model and Optimizer ----------#
+    
+    
+    # ---------- Prepare model of SMPL ----------#
+    smpl_model_path = './SMPL/model.pkl'
+    #smpl_model_path = '/home/user/avatar-root/SilhouettesbasedHSE/SMPL/model.pkl'
+    
+
+    smpl_model = SMPLModel(device=device, model_path=smpl_model_path)
+
 
 
 
     path, train_loss, validation_loss =\
-        train(model, train_dataloader, epochs, 
+        train(model, 
+              train_dataloader, 
+              epochs, 
               optimizer, 
               scheduler,
               checkpoint_path, 
+              smpl_model,
               validation_dataloader=test_dataloader,
               device=device)
     save_result(path, train_loss, validation_loss)

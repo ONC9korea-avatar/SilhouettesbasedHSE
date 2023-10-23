@@ -12,3 +12,6 @@ train_settings:
   
   scheduler: # stepLR scheduler
     gamma: 0.1
+
+  model: RegressionPCA
+  method : PCA+SMPL_VERTEX_10
