@@ -68,4 +68,4 @@ python -m dataset-generation.generation ./config/dataset-generation/example.yaml
 Replace config.yaml with the path to your configuration file.
 
 ## Output
-The script will generate a dataset in the form of a compressed numpy file (`dataset.npz`). The file will contain various data, including betas, poses, vertices, sample points, etc. If you don't want to save a properties of `dataset.npz`, you should delete the enum of `npz` in your configuration file.
+The script will generate a dataset in the form of a compressed numpy file (`dataset.npz`). If you don't want to save a properties of `dataset.npz`, you should delete the enum of `npz` in your configuration file.
