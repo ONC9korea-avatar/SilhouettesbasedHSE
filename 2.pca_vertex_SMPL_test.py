@@ -52,7 +52,7 @@ print('cuda available:', cuda_available)
 device = torch.device('cuda:0' if cuda_available else 'cpu')
 print('using device', device)
 
-infer_model_name = 'Oct_17_18:50:26_2023'
+infer_model_name = 'Oct_22_15:55:06_2023'
 infer_model_path = f'./checkpoints/{infer_model_name}/RegressionPCA/epochs_1000.ckpt'
 config_path = f'./checkpoints/{infer_model_name}/RegressionPCA/config.yaml'
 results_path_for_config = f'./test_results/{infer_model_name}'
@@ -76,7 +76,7 @@ _ = infer_model.eval()
 dataset_path = '../dataset-generation/dataset_HSE/SMPL_augmentated_pose_variation/sample_points/'
 
 test_index = np.load(os.path.join(dataset_path, 'train_test_index.npz'))['test_idx']
-test_dataset = HSEDataset(os.path.join(dataset_path, 'dataset.npz'), index=test_index)
+test_dataset = HSEDataset(os.path.join(dataset_path, 'dataset.npz'),os.path.join(dataset_path, 'variant_pose.npy'), index=test_index)
 test_dataloader = DataLoader(dataset=test_dataset, batch_size=512, shuffle=False)
 
 def infer(frontal, lateral):
@@ -91,34 +91,42 @@ smpl_model = SMPLModel(device=torch.device('cuda'), model_path=smpl_model_path)
 beta_gt_list = []
 beta_out_list = []
 vertex_out_list = []
+p_out_list = []
 
 for data in tqdm(test_dataloader):
-    f, l, b_gt = data   
+    f, l, b_gt, p = data   
 
     f = f.to(device, dtype=torch.float)
     l = l.to(device, dtype=torch.float)
+    p = p.to(device, dtype=torch.float64)
     outputs = infer(f, l)
     outputs_10, outputs_20670 = outputs[:, :10], outputs[:, 10:]
+    
     beta_out_arr = np.array(outputs_10.to('cpu'))
     vertex_out_arr = np.array(outputs_20670.to('cpu'))
+    p_out_arr = np.array(p.to('cpu'))
     
     beta_gt_list.extend(b_gt)
     beta_out_list.extend(beta_out_arr)
     vertex_out_list.extend(vertex_out_arr)
+    p_out_list.extend(p_out_arr)
     
 
 beta_gt = np.vstack(beta_gt_list)
 beta_out = np.vstack(beta_out_list)
 vertex_out = np.vstack(vertex_out_list)
+p_out = np.vstack(p_out_list)
 
-print(beta_gt.shape, beta_out.shape, vertex_out.shape)
+print(beta_gt.shape, beta_out.shape, vertex_out.shape, p_out.shape)
 
 beta_gt_tensor = torch.from_numpy(beta_gt).type(torch.float64).to(device)
 beta_out_tensor = torch.from_numpy(beta_out).type(torch.float64).to(device)
 vertex_out_tensor = torch.from_numpy(vertex_out).type(torch.float64).to(device)
+p_out_tensor = torch.from_numpy(p_out).type(torch.float64).to(device)
 
-pose = get_A_pose_parameter(beta_out.shape[0])
-pose_tensor = torch.from_numpy(pose).type(torch.float64).to(device)
+#pose = get_A_pose_parameter(beta_out.shape[0])
+#pose_tensor = torch.from_numpy(pose).type(torch.float64).to(device)
+pose_tensor = p_out_tensor
 
 trans = np.zeros((beta_out.shape[0], 3))
 trans_tensor = torch.from_numpy(trans).type(torch.float64).to(device)
