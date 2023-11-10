@@ -3,16 +3,18 @@ paths:
   checkpoint_path: ./checkpoints/
 
 train_settings:
-  batch_size: 1024
+  batch_size: 512
   epochs: 1000
 
   optimizer:
-    lr: 1.0e-3
+    lr: 2.0e-3
     betas: [0.9, 0.999]
   
   scheduler: # assume stepLR scheduler
-    gamma: 0.1
+    gamma: 0.5
 
-  #[RegressionPCA, ResnetPCA_small, ResnetPCA, ResnetPCA_wide, new_RegressionPCA]
-  model: new_RegressionPCA
+  #[RegressionPCA, ResnetPCA_small, ResnetPCA, ResnetPCA_wide, new_RegressionPCA, RegressionPCA_fc]
+  model: fc_RegressionPCA
   method : PCA+SMPL_VERTEX_10+6890*3+with_Pose, new data augmentation_pose(250,000)
+  fc1: 8192 #8192
+  fc2: 4096 #4096

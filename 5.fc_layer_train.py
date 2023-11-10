@@ -1,8 +1,6 @@
 # %%
-## 20231025
-## new dataset : 100,000
+
 import os, sys
-#from time import time, ctime
 from time import time, localtime, strftime
 from tqdm import tqdm
 import yaml
@@ -16,6 +14,7 @@ import matplotlib.pyplot as plt
 
 from model.regressCNN import RegressionPCA
 from model.new_regressCNN import new_RegressionPCA
+from model.fc_regressCNN import fc_RegressionPCA
 from model.resnetCNN import ResnetPCA
 from model.resnetCNN_small import ResnetPCA_small
 from model.resnetCNN_wide import ResnetPCA_wide
@@ -174,6 +173,12 @@ def save_result(path, train_loss, validation_loss, processing_time):
     with open(os.path.join(path, 'processing_time.txt'), 'w') as f:
         f.write(f'Processing Time: {processing_time}') 
 
+    with open(os.path.join(path, 'path.txt'), 'w') as f:
+        f.write(f'{TIMESTAMP}') 
+    
+
+    
+
 def main():
     global CONFIG_TEXT
     # ---------- Device Check ---------- #
@@ -207,6 +212,8 @@ def main():
     betas = train_settings['optimizer']['betas']
 
     gamma = train_settings['scheduler']['gamma']
+    fc1 = train_settings['fc1']
+    fc2 = train_settings['fc2']
     model_type = train_settings['model']
     # ---------- Reading Config ---------- #
 
@@ -229,13 +236,14 @@ def main():
         'ResnetPCA_small': ResnetPCA_small,
         'ResnetPCA': ResnetPCA,
         'ResnetPCA_wide': ResnetPCA_wide,
-        'new_RegressionPCA': new_RegressionPCA
+        'new_RegressionPCA': new_RegressionPCA, 
+        'fc_RegressionPCA': fc_RegressionPCA,
     }
 
     ModelClass = model_mapping[model_type]
 
     # ---------- Prepare Model and Optimizer ----------#
-    model = ModelClass(10+(6890*3)+(24*3)).to(device)
+    model = ModelClass((10+(6890*3)+(24*3)), fc1, fc2).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, betas=betas)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=epochs//3, gamma=gamma)
     
