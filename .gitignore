@@ -1,12 +1,5 @@
 *__pycache__
-dataset_HSE
 checkpoints/
-checkpoints_save/
-test_results/
-demo_*
 
-output/
-concat_sizekorea
 *.zip
 *.npz
-test/
