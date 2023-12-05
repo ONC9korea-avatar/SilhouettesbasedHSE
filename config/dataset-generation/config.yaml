@@ -1,0 +1,29 @@
+betas_path: /workspace/SilhouettesbasedHSE/dataset-generation/augmentated_betas.npy
+pose:
+  per_beta: 10
+  type: random_FL # random_L # T-pose # A-pose
+seed: 42
+npz:
+  - beta
+  - pose
+  - vertices
+  - sample_point
+
+smpl_reconstruction:
+  model_path: /workspace/SilhouettesbasedHSE/SMPL/model.pkl
+
+camera:
+  distance: 1.8
+  pinhole:
+    run: true
+
+silhouette:
+  image_width: 500
+  image_height: 600
+  max_human_height: 2.30
+  save_png: true
+  save_path: /workspace/datasets/dataset_hse
+
+sample_points:
+  run_sample_points: true
+  num_sample_points: 648

@@ -1,5 +1,5 @@
 paths:
-  dataset_path: /home/dgist/avatar-root/dataset-generation/dataset_HSE/SMPL_augmentated_pose_variation/sample_points_camera
+  dataset_path: ./dataset-generation
   checkpoint_path: ./checkpoints/
 
 train_settings:

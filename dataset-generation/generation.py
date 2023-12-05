@@ -97,10 +97,13 @@ def get_sample_points(im, sample_num):
     imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
 
     contours, _ = cv.findContours(imgray, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_NONE)
-    largest_cont = max(contours, key=lambda c:cv.contourArea(c))
+    largest_cont = max(contours, key=cv.contourArea)
     
     num, _, cols = largest_cont.shape
     points = largest_cont.reshape([num, cols])
+
+    head_top_idx = np.argmin(points[:,1])
+    points = np.concatenate([points[head_top_idx:], points[head_top_idx:]])
 
     idx = np.linspace(0, num, sample_num, endpoint=False, dtype=int)
     sample_points = points[idx, :]
@@ -152,7 +155,7 @@ def main(conf):
     # make silhuoettes & sample points
     args = [(i, v, faces, conf) for i, v in enumerate(meshs)]
 
-    with Pool() as pool:
+    with Pool(4) as pool:
         output_list = list(tqdm(pool.imap(worker, args), total = len(args)))
     
     # save dataset npz
