@@ -63,6 +63,8 @@ def worker(args):
 
     vertices_frontal = vertices.copy()
     vertices_lateral = vertices.copy()[:,(2,1,0)]
+    # neck_y = vertices_lateral[3050, 1]
+    # vertices_lateral[vertices_lateral[:,1]>neck_y] = 0
 
     vertices_frontal[:, 2] += cam_distance
     vertices_frontal[:, 2] = 2 * cam_distance  - vertices_frontal[:, 2]
@@ -76,7 +78,7 @@ def worker(args):
         proj_lateral = vertices_lateral[:,[0,1]]
 
     silhouette_frontal = make_silhouette(proj_frontal, faces, image_width, image_height, human_height, max_human_height)
-    silhouette_lateral = make_silhouette(proj_lateral, faces, image_width, image_height, human_height, max_human_height)
+    silhouette_lateral = make_silhouette(proj_lateral, faces, image_width, image_height, human_height, max_human_height, lateral=True)
     
     if save_png:
         path = os.path.join(save_path, 'silhouettes',f'{i}')
@@ -126,59 +128,71 @@ def smpl_reconsturction(betas, poses, smpl_model: SMPLModel, batch_size = 512):
     return smpl_meshs
 
 def main(conf):
-    random.seed(conf['seed'])
+    start_list = [0, 5000, 10000, 15000, 20000]
+    end_list = [50000, 10000, 15000, 20000, 25135]
+    seed_list = [42, 43, 44, 45, 46]
 
-    betas = np.load(conf['betas_path'])
-    per_beta = conf['pose']['per_beta']
-    betas = np.repeat(betas, per_beta, 0)
+    for start, end, seed in zip(start_list, end_list, seed_list):
+        print('start', start)
+        print('end', end)
+        print('seed', seed)
+        random.seed(seed)
 
-    pose_type = conf['pose']['type']
-    if pose_type == 'random_FL':
-        poses = get_random_A_pose(len(betas), True)
-    elif pose_type == 'random_L':
-        poses = get_random_A_pose(len(betas), False)
-    elif pose_type == 'A-pose':
-        poses = get_A_pose(len(betas))
-    elif pose_type== 'T-pose':
-        poses = get_T_pose(len(betas))
-    else:
-        raise Exception(f'{pose_type}: It is invalid pose.')
-    
-    # smpl reconstruction
+        betas = np.load(conf['betas_path'])[start:end]
+        per_beta = conf['pose']['per_beta']
+        betas = np.repeat(betas, per_beta, 0)
 
-    torch_device = torch.device('cuda')
-    smpl_model = SMPLModel(device=torch_device, model_path=conf['smpl_reconstruction']['model_path'])
-    
-    meshs = smpl_reconsturction(betas, poses, smpl_model)
-    faces = smpl_model.faces
-
-    # make silhuoettes & sample points
-    args = [(i, v, faces, conf) for i, v in enumerate(meshs)]
-
-    with Pool(4) as pool:
-        output_list = list(tqdm(pool.imap(worker, args), total = len(args)))
-    
-    # save dataset npz
-    save_output = {}
-    save_conf = conf['npz']
-    if 'beta' in save_conf:
-        save_output['betas'] = betas
-    if 'pose' in save_conf:
-        save_output['poses'] = poses
+        pose_type = conf['pose']['type']
+        if pose_type == 'random_FL':
+            poses = get_random_A_pose(len(betas), True)
+        elif pose_type == 'random_L':
+            poses = get_random_A_pose(len(betas), False)
+        elif pose_type == 'A-pose':
+            poses = get_A_pose(len(betas))
+        elif pose_type== 'T-pose':
+            poses = get_T_pose(len(betas))
+        else:
+            raise Exception(f'{pose_type}: It is invalid pose.')
         
-    if 'sample_point' in save_conf:
-        sample_points = np.array(list(map(lambda x: x[0], output_list)))
-        save_output['frontal_sample_points'] = sample_points[:, 0]
-        save_output['lateral_sample_points'] = sample_points[:, 1]
+        # smpl reconstruction
 
-    if 'vertices' in save_conf:
-        save_output['vertices'] = np.array(meshs)
+        torch_device = torch.device('cuda')
+        smpl_model = SMPLModel(device=torch_device, model_path=conf['smpl_reconstruction']['model_path'])
+        
+        meshs = smpl_reconsturction(betas, poses, smpl_model)
+        faces = smpl_model.faces
 
-    np.savez_compressed('dataset.npz', **save_output)
-    dataset = np.load('dataset.npz')
+        # make silhuoettes & sample points
+        args = [(i, v, faces, conf) for i, v in enumerate(meshs, start)]
 
-    for k in dataset:
-        print(k, dataset[k].shape)
+        with Pool(4) as pool:
+            output_list = list(tqdm(pool.imap(worker, args), total = len(args)))
+        
+        # save dataset npz
+        save_output = {}
+        save_conf = conf['npz']
+        if 'beta' in save_conf:
+            save_output['betas'] = betas
+        if 'pose' in save_conf:
+            save_output['poses'] = poses
+            
+        if 'sample_point' in save_conf:
+            sample_points = np.array(list(map(lambda x: x[0], output_list)))
+            save_output['frontal_sample_points'] = sample_points[:, 0]
+            save_output['lateral_sample_points'] = sample_points[:, 1]
+
+        if 'vertices' in save_conf:
+            save_output['vertices'] = np.array(meshs)
+
+        start_label = start * per_beta
+        end_label = end * per_beta - 1
+        np.savez_compressed(f'dataset_{start_label:06d}_{end_label:06d}.npz', **save_output)
+        dataset = np.load(f'dataset_{start_label:06d}_{end_label:06d}.npz')
+
+        for k in dataset:
+            print(k, dataset[k].shape)
+        del save_output
+        del dataset
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='HSE dataset generation')   # read config file
