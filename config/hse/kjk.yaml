@@ -1,0 +1,18 @@
+paths:
+  dataset_path: /home/user/avatar-root/dataset-generation/dataset_HSE/SMPL_augmentated_pose_variation/sample_points
+  checkpoint_path: ./checkpoints/
+
+train_settings:
+  batch_size: 1024
+  epochs: 1000
+
+  optimizer:
+    lr: 1.0e-1
+    betas: [0.9, 0.999]
+  
+  scheduler: # assume stepLR scheduler
+    gamma: 0.2
+
+  #[RegressionPCA, ResnetPCA_small, ResnetPCA, ResnetPCA_wide]
+  model: RegressionPCA
+  method : PCA+SMPL_VERTEX_10+6890*3

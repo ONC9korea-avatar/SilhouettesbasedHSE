@@ -1,0 +1,32 @@
+betas_path: /home/user/avatar-root/20231024_new_augmentation_pose/SilhouettesbasedHSE/dataset-generation/augmentated_betas.npy
+pose: 
+  per_beta: 4
+  type: random_FL #random FL # radnom_L # T-pose # A-pose
+seed: 42
+npz:
+  - beta
+  - pose
+  - vertices
+  - sample_point
+
+smpl_reconstruction:
+  model_path: /home/user/avatar-root/SilhouettesbasedHSE/SMPL/model.pkl
+
+camera:
+  distance: 1.8
+  pinhole:
+    run: true
+    # fov: unsupport
+    # up_vector: unsupport
+
+silhouette:
+  image_width: 500
+  image_height: 600
+  max_human_height: 2.30
+  save_png: true
+  save_path: /home/user/avatar-root/20231024_new_augmentation_pose/SilhouettesbasedHSE/result
+
+sample_points:
+  run_sample_points: true
+  num_sample_points: 648
+
