@@ -41,6 +41,7 @@ class HSEDataset_aug(Dataset):
         p = self.poses[i]
         #v = self.vertices[i]
 
+        #입력의 차원을 맞춰주기 위해 아래 코드가 동작해야함(ex. (650,2) -> (2,650))
         if self.transform:
             f = self.transform(f)
             l = self.transform(l)

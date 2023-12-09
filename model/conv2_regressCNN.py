@@ -1,15 +1,25 @@
+#####################################
+# File Name: Conv2_regressCNN.py
+# Author : Junkwang Kim
+# Email : kjk1208@dgist.ac.kr
+# Creation Date : 2023.12.01
+# Last Modified Date : 2023.12.01
+# Change Log :
+# - 2023.12.01 : 1D Conv to 2D Conv
+#####################################
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import numpy as np
 
-class conv1_1(nn.Module):
-    def __init__(self, in_planes, out_planes):
-        super(conv1_1, self).__init__()
+class Conv2_1(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(Conv2_1, self).__init__()
 
-        self.conv = nn.Conv1d(in_planes, out_planes, kernel_size=3, bias=False)
-        self.bn = nn.BatchNorm1d(out_planes)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=(3,3), stride=(1,1), padding=(1,1), bias=False)
+        self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -18,16 +28,15 @@ class conv1_1(nn.Module):
         out = self.relu(out)
         return out
 
-
 class MLP_liu(nn.Module):
-    def __init__(self, inplanes, outplanes, size_kernel=3, size_padding=1, size_pooling=3):
+    def __init__(self, in_channels, out_channels, size_kernel=3, size_padding=1, size_pooling=3):
         super(MLP_liu, self).__init__()
 
-        self.conv = nn.Conv1d(inplanes, outplanes, kernel_size=size_kernel, padding=size_padding, bias=False)
-        self.bn = nn.BatchNorm1d(outplanes)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=(size_kernel, size_kernel), padding=(size_padding, size_padding), bias=False)
+        self.bn = nn.BatchNorm2d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
-        self.pooling = nn.MaxPool1d(size_pooling, size_pooling)
+        self.pooling = nn.MaxPool2d(kernel_size=(size_pooling, size_pooling), stride=(size_pooling, size_pooling))
 
     def forward(self, x):
         out = self.conv(x)
@@ -38,22 +47,22 @@ class MLP_liu(nn.Module):
         return out
 
 
-class fc_RegressionPCA(nn.Module):
-    def __init__(self, len_out, fc1=2048, fc2=1024):
-        super(fc_RegressionPCA, self).__init__()
+class conv2_RegressionPCA(nn.Module):
+    def __init__(self, len_out,fc1=2048, fc2=1024):
+        super(conv2_RegressionPCA, self).__init__()
 
         hidden1 = fc1
         hidden2 = fc2
-        num_keypoints = 8 # (num of points: num_keypoints) (648, 8) Namely, (divide 81)
+        #num_keypoints = 8 # (num of points: num_keypoints) (648, 8) Namely, (divide 81)
         c1, c2, c3, c4, c5 = (64, 128, 192, 192, 144)
 
         # front
-        self.layer11 = conv1_1(2, c1)
+        self.layer11 = Conv2_1(1, c1)
         self.layer12 = MLP_liu(c1, c2)
         self.layer13 = MLP_liu(c2, c3)
         self.layer14 = MLP_liu(c3, c4)
         # side
-        self.layer21 = conv1_1(2, c1)
+        self.layer21 = Conv2_1(1, c1)
         self.layer22 = MLP_liu(c1, c2)
         self.layer23 = MLP_liu(c2, c3)
         self.layer24 = MLP_liu(c3, c4)
@@ -63,8 +72,11 @@ class fc_RegressionPCA(nn.Module):
         self.layer33 = MLP_liu(c3, c4)
         self.layer34 = MLP_liu(c4, c5)
 
+        flattened_size = 144
+
         self.fc = nn.Sequential(
-            nn.Linear(num_keypoints*c5, hidden1), 
+            #nn.Linear(num_keypoints*c5, hidden1), 
+            nn.Linear(flattened_size, hidden1), 
             nn.ReLU(),
             nn.Linear(hidden1, hidden2),
             nn.ReLU(),
@@ -88,6 +100,7 @@ class fc_RegressionPCA(nn.Module):
         f4 = self.layer14(f3)
         s4 = self.layer24(s3)
         fs4 = self.layer34(f4+s4+fs3)
+        #print("fs4 size:", fs4.size())  # fs4의 크기 출력
 
         fs5 = fs4.view(fs4.shape[0], -1)
         out = self.fc(fs5)
@@ -96,7 +109,12 @@ class fc_RegressionPCA(nn.Module):
 
 if __name__ == '__main__':
     len_out = 10 + 6890*3 + 24*3
-    model = fc_RegressionPCA(len_out, 4096, 2048)
+    model = conv2_RegressionPCA(len_out, 2048, 1024)    
+
+    batch_size = 32
+    num_samples = batch_size
+    frontal_img_data = torch.randn(num_samples, 1, 150, 125)
+    lateral_img_data = torch.randn(num_samples, 1, 150, 125)
 
     for name, param in model.named_parameters():
         if param.requires_grad:
@@ -106,19 +124,10 @@ if __name__ == '__main__':
     total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Total parameters: {total_params}")
     print(f"Total parameters: {total_params*4/(1024**3)} GB")
-
-    # 더미 데이터 생성
-    batch_size = 32
-    input1 = torch.randn(batch_size, 2, 650)
-    input2 = torch.randn(batch_size, 2, 650)
-
-    # 모델에 데이터를 입력하여 출력 확인
-    output = model(input1, input2)  
-
     
-    
-    # 출력 크기 확인
+
+    output = model(frontal_img_data, lateral_img_data)
+
     print("Output size:", output.size())  # 예상 출력 크기: [batch_size, 10 + 6890*3 + 24*3]
 
-    # 모델 구조 출력
-    #print(model)
+    # print(model)

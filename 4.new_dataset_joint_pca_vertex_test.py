@@ -16,7 +16,7 @@ print('cuda available:', cuda_available)
 device = torch.device('cuda:0' if cuda_available else 'cpu')
 print('using device', device)
 
-infer_model_name = '2023_11_06_18h08m24s'
+infer_model_name = '2023_11_06_18h08m52s'
 b_save_obj = False
 infer_model_path = f'./checkpoints/{infer_model_name}/RegressionPCA/epochs_1000.ckpt'
 config_path = f'./checkpoints/{infer_model_name}/RegressionPCA/config.yaml'

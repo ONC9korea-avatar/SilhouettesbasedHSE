@@ -13,6 +13,7 @@ from model.new_regressCNN import new_RegressionPCA
 from model.resnetCNN import ResnetPCA
 from model.resnetCNN_small import ResnetPCA_small
 from model.resnetCNN_wide import ResnetPCA_wide
+from model.fc_regressCNN import fc_RegressionPCA
 
 from SMPL.smpl_torch_batch import SMPLModel
 from obj_utils.io import *
@@ -23,26 +24,25 @@ print('cuda available:', cuda_available)
 device = torch.device('cuda:0' if cuda_available else 'cpu')
 print('using device', device)
 
-infer_model_name = '2023_11_07_15h35m27s'
-b_save_obj = False
-infer_model_path = f'./checkpoints/{infer_model_name}/new_RegressionPCA/epochs_1000.ckpt'
-config_path = f'./checkpoints/{infer_model_name}/new_RegressionPCA/config.yaml'
+infer_model_name = '2023_11_15_10h31m00s'
+model_name = 'fc_RegressionPCA'
+b_save_obj = False                              #User Input
+infer_model_path = f'./checkpoints/{infer_model_name}/{model_name}/epochs_1000.ckpt'
+config_path = f'./checkpoints/{infer_model_name}/{model_name}/config.yaml'
 results_path_for_config = f'./test_results/{infer_model_name}'
 
-global conf
 
 # YAML 파일이 존재하는지 확인
-if os.path.exists(config_path):
-    with open(config_path) as f:
-        CONFIG_TEXT = f.read()
+with open(config_path) as f:
+    CONFIG_TEXT = f.read()
 
-    conf = yaml.safe_load(CONFIG_TEXT)    
-    
-    if not os.path.exists(results_path_for_config):
-        os.makedirs(results_path_for_config)
+if not os.path.exists(results_path_for_config):
+    os.makedirs(results_path_for_config)
 
-    with open(os.path.join(results_path_for_config, 'config.yaml'), 'w') as f:
-        f.write(CONFIG_TEXT)    
+with open(os.path.join(results_path_for_config, 'config.yaml'), 'w') as f:
+    f.write(CONFIG_TEXT)
+
+conf = yaml.safe_load(CONFIG_TEXT)    
 
 model_type = conf['train_settings']['model']
 model_mapping = {
@@ -50,13 +50,21 @@ model_mapping = {
     'ResnetPCA_small': ResnetPCA_small,
     'ResnetPCA': ResnetPCA,
     'ResnetPCA_wide': ResnetPCA_wide,
-    'new_RegressionPCA': new_RegressionPCA
+    'new_RegressionPCA': new_RegressionPCA,
+    'fc_RegressionPCA': fc_RegressionPCA,
 }
 
 ModelClass = model_mapping[model_type]
 
+fc1 = conf['train_settings']['fc1']
+fc2 = conf['train_settings']['fc2']
+
+print('fc1 : ' + str(fc1))
+print('fc2 : ' + str(fc2))
+
 # ---------- Prepare Model and Optimizer ----------#
-infer_model = ModelClass(10+(6890*3)+(24*3)).to(device)
+#infer_model = ModelClass(10+(6890*3)+(24*3)).to(device)
+infer_model = ModelClass((10+(6890*3)+(24*3)), fc1, fc2).to(device)
 
 #infer_model = RegressionPCA(10+(6890*3)+(24*3)).to(device)
 infer_model.load_state_dict(torch.load(infer_model_path))
@@ -90,6 +98,9 @@ for data in tqdm(test_dataloader):
     l = l.to(device, dtype=torch.float)    
     p = p.to(device, dtype=torch.float64)
 
+    print(f.shape)
+    print(l.shape)
+
     outputs = infer(f, l)
     outputs_10, outputs_20670, outputs_joint_72 = outputs[:, :10], outputs[:, 10:10+20670], outputs[:, 10+20670:]
     
@@ -121,6 +132,8 @@ out_p_tensor = torch.from_numpy(out_p_vstack).type(torch.float64).to(device)
 
 #pose = get_A_pose_parameter(beta_out.shape[0])
 #pose_tensor = torch.from_numpy(pose).type(torch.float64).to(device)
+
+print('beta_out_vstack.shape[0]:' + str(beta_out_vstack.shape[0]))
 
 trans = np.zeros((beta_out_vstack.shape[0], 3))
 trans_tensor = torch.from_numpy(trans).type(torch.float64).to(device)

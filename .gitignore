@@ -6,3 +6,8 @@ test_results/
 demo_*
 test/
 past_test_results/
+demo/
+dataset.npz
+out_beta_Doo.npy
+git 
+config.yaml
