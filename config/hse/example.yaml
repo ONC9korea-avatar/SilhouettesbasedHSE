@@ -2,6 +2,7 @@ paths:
   dataset_path: ./dataset-generation
   checkpoint_path: ./checkpoints/
 
+
 train_settings:
   batch_size: 256
   epochs: 500
