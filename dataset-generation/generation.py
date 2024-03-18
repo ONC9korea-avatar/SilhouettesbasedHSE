@@ -112,7 +112,7 @@ def get_sample_points(im, sample_num):
 
     return sample_points
 
-def smpl_reconsturction(betas, poses, smpl_model: SMPLModel, batch_size = 512):
+def smpl_reconstruction(betas, poses, smpl_model: SMPLModel, batch_size = 512):
     smpl_dataset = SMPLDataset(beta_arr=betas, pose_arr=poses, device=smpl_model.device)
     smpl_dataloader = DataLoader(smpl_dataset, batch_size=batch_size, shuffle=False)
 
@@ -193,6 +193,8 @@ def main(conf):
             print(k, dataset[k].shape)
         del save_output
         del dataset
+
+        exit()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='HSE dataset generation')   # read config file
