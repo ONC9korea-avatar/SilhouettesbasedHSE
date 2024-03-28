@@ -3,3 +3,5 @@ checkpoints/
 
 *.zip
 *.npz
+
+dataset-generation/silhouettes
