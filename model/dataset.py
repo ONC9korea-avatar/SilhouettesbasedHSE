@@ -1,4 +1,6 @@
 import numpy as np
+
+import torch
 from torch.utils.data import Dataset
 
 def repeat_data(x):
@@ -40,3 +42,16 @@ class HSEDataset(Dataset):
 
     def __len__(self):
         return len(self.frontal)
+
+class HSEDatasetFromSP(Dataset):
+    def __init__(self, sample_points):
+        self.sample_points = sample_points
+    
+    def __getitem__(self, i):
+        f = torch.from_numpy(_transform(self.sample_points[i, 0])).float().cuda()
+        l = torch.from_numpy(_transform(self.sample_points[i, 1])).float().cuda()
+        
+        return f, l
+
+    def __len__(self):
+        return self.sample_points.shape[0]
