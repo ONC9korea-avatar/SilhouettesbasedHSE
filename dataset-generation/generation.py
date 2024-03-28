@@ -159,7 +159,7 @@ def main(conf):
         torch_device = torch.device('cuda')
         smpl_model = SMPLModel(device=torch_device, model_path=conf['smpl_reconstruction']['model_path'])
         
-        meshs = smpl_reconsturction(betas, poses, smpl_model)
+        meshs = smpl_reconstruction(betas, poses, smpl_model)
         faces = smpl_model.faces
 
         # make silhuoettes & sample points
